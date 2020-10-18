@@ -10,7 +10,12 @@ namespace LFA
         [SerializeField] private float m_JumpForce = 5f;
         [Space]
         [SerializeField] private Vector2 m_CapsuleSlideSize = Vector2.zero;
+        [Header("Sounds")]
+        [SerializeField] private AudioClip m_JumpClip = null;
+        [SerializeField] private AudioClip m_DeathClip = null;
+        [SerializeField] private AudioClip m_SlideClip = null;
         [Space]
+        [Header("Events")]
         [SerializeField] private UnityEvent OnStartGame = null;
         [SerializeField] private UnityEvent OnWinGame = null;
         [SerializeField] private UnityEvent OnDead = null;
@@ -20,6 +25,7 @@ namespace LFA
 
         private CapsuleCollider2D m_Capsule = null;
         private SpriteRenderer m_Sprite = null;
+        private AudioSource m_Source = null;
 
         private void Start()
         {
@@ -29,6 +35,7 @@ namespace LFA
             m_Rigidbody = GetComponent<Rigidbody2D>();
             m_Capsule = GetComponent<CapsuleCollider2D>();
             m_Sprite = GetComponentInChildren<SpriteRenderer>();
+            m_Source = GetComponent<AudioSource>();
 
             m_Sprite.enabled = false;
             initialCapsuleSize = m_Capsule.size;
@@ -54,10 +61,14 @@ namespace LFA
 
             m_Animator.SetBool("SPACE", false);
             m_Animator.SetBool("GROUND", IsGrounded());
+            m_Animator.ResetTrigger("S_RELEASED");
 
             if (Input.GetKeyDown(KeyCode.S))
             {
                 m_Animator.SetTrigger("S_PRESSED");
+
+                if (m_Animator.GetCurrentAnimatorStateInfo(0).IsName("Running"))
+                    m_Source.PlayOneShot(m_SlideClip);
             }
 
             if (m_Animator.GetCurrentAnimatorStateInfo(0).IsName("Slide"))
@@ -68,6 +79,7 @@ namespace LFA
             if (Input.GetKeyUp(KeyCode.S))
             {
                 m_Animator.SetTrigger("S_RELEASED");
+                m_Animator.ResetTrigger("S_PRESSED");
             }
 
             if (Input.GetKeyDown(KeyCode.Space))
@@ -77,6 +89,7 @@ namespace LFA
                     m_Animator.SetBool("SPACE", true);
                     m_Animator.SetBool("GROUND", false);
                     m_Rigidbody.velocity = Vector2.up * m_JumpForce;
+                    m_Source.PlayOneShot(m_JumpClip);
                 }
 
                 if (m_Rigidbody.isKinematic)
@@ -102,6 +115,7 @@ namespace LFA
                 m_Animator.SetTrigger("GEF");
                 m_Rigidbody.isKinematic = true;
                 m_Rigidbody.velocity = Vector2.zero;
+                m_Source.PlayOneShot(m_DeathClip);
                 OnDead.Invoke();
             }
             else if (collision.CompareTag("Win"))
